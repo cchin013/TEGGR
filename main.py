@@ -41,7 +41,7 @@ def getAllGameReviews(dataset):
         # Get a new game to analyze
         response = requests.get(
             'https://store.steampowered.com/appreviews/' + str(appNameAndID["applist"]["apps"][i]["appid"]) + '?json=1',
-            params=parameters)
+            params=parameters,timeout=300)
         reviewsResponse = response.json()
         # If the query is empty, skip that game/app
         if reviewsResponse["success"] == 2:
@@ -49,7 +49,7 @@ def getAllGameReviews(dataset):
         print("Looking through reviews for game: " + str(appNameAndID["applist"]["apps"][i]["name"]))
         #print("_____________________________THE FOLLOWING IS FOR THE GAME: " + str(dataset["games"][i]["title"]))
         # Go through all the reviews for a given game
-        for j in range(reviewsResponse["query_summary"]["total_reviews"]):
+        for j in range(0, reviewsResponse["query_summary"]["total_reviews"], 20):
             # Go through all reviews for the game in batches of 20
             # Place them in the proper location in our reviewList dataset based on the game
             for k in range(len(reviewsResponse["reviews"])):
@@ -58,13 +58,14 @@ def getAllGameReviews(dataset):
                 reviewList["titles"][appNameAndID["applist"]["apps"][i]["name"]]["reviews"].append({
                     reviewsResponse["reviews"][k]["review"]
                 })
+                print(reviewsResponse["reviews"][k]["review"])
             # Get the next batch of 20, e.g. first we get reviews 0-20, then 21-40, etc..
             parameters["start_offset"] += 20
             response = requests.get(
                 'https://store.steampowered.com/appreviews/' + str(appNameAndID["applist"]["apps"][i]["appid"]) + '?json=1',
-                params=parameters)
+                params=parameters,timeout=300)
             reviewsResponse = response.json()
-            j += 19
+        print("@@@@@@@@@@@Done looking through reviews for game: " + str(appNameAndID["applist"]["apps"][i]["name"]) + "@@@@@@@@@@@")
 #Get a list of all games on Steam
 response = requests.get("https://api.steampowered.com/ISteamApps/GetAppList/v2/")
 appNameAndID = response.json()
@@ -92,6 +93,7 @@ for i in range(len(appNameAndID["applist"]["apps"])):
 #Get all game reviews for all games in our dataset
 getAllGameReviews(dataset)
 
-with open('data.csv', w) as f:
-    w = csv.writer(f)
-    w.writerows(reviewList.items())
+#with open('data.csv', 'a', newline='', encoding='utf-8') as f:
+#    w = csv.writer(f)
+#    w.writerows("a")
+#    w.writerows("b")

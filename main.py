@@ -95,9 +95,6 @@ for i in range(len(appNameAndID["applist"]["apps"])):
             continue
         reviewsResponse = response.json()
         print(str(j) + " reviews done")
-    reviewData = pd.DataFrame(data=(reviewList["titles"][appNameAndID["applist"]["apps"][i]["name"]]["reviews"]),
-                              columns=[appNameAndID["applist"]["apps"][i]["name"]])
-    data = data.append(reviewData)
+    data[appNameAndID["applist"]["apps"][i]["name"]] = pd.Series(reviewList["titles"][appNameAndID["applist"]["apps"][i]["name"]]["reviews"])
     data.to_csv('data.csv', encoding='utf-8')
     data.reset_index()
-print(data["Counter-Strike"])

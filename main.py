@@ -45,26 +45,29 @@ for i in range(len(appNameAndID["applist"]["apps"])):
     reviewList["titles"].update({
         appNameAndID["applist"]["apps"][i]["name"] : {
             'reviews' : [
+            ],
+            'dates' : [
             ]
         }
     })
 
-#Get all game reviews for all games in our dataset
+# Get all game reviews for all games in our dataset
 # Steam API parameters for what we want: all recent reviews(including positive and negative) in English in the last 10 days, purchased from anywhere
 # More info here: https://partner.steamgames.com/doc/store/getreviews
 data = pd.DataFrame()
+dates = pd.DataFrame()
 parameters = {'filter': 'recent', 'language': 'english', 'day_range': '10', 'start_offset': '0',
               'review_type': 'all',
               'purchase_type': 'all',
               'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36'}
 # Go through all games in the database
-for i in range(len(appNameAndID["applist"]["apps"])):
+for app in appNameAndID["applist"]["apps"]:
     # Reset offset to 0 after every game
     parameters["start_offset"] = 0
     # Get a new game to analyze
     try:
         response = requests.get(
-            'https://store.steampowered.com/appreviews/' + str(appNameAndID["applist"]["apps"][i]["appid"]) + '?json=1',
+            'https://store.steampowered.com/appreviews/' + str(app["appid"]) + '?json=1',
             params=parameters, timeout=5)
     except requests.exceptions.RequestException as e:
         print(e)
@@ -80,15 +83,18 @@ for i in range(len(appNameAndID["applist"]["apps"])):
         for review in reviewsResponse["reviews"]:
             # debugging statement to check if we are really getting reviews
             # print(reviewsResponse["reviews"][k]["review"])
-            reviewList["titles"][appNameAndID["applist"]["apps"][i]["name"]]["reviews"].append({
+            reviewList["titles"][app["name"]]["reviews"].append({
                 review["review"]
+            })
+            reviewList["titles"][app["name"]]["dates"].append({
+                review["timestamp_created"]
             })
         # Get the next batch of 20, e.g. first we get reviews 0-20, then 21-40, etc..
         parameters["start_offset"] += 20
         try:
             response = requests.get(
                 'https://store.steampowered.com/appreviews/' + str(
-                    appNameAndID["applist"]["apps"][i]["appid"]) + '?json=1',
+                    app["appid"]) + '?json=1',
                 params=parameters, timeout=5)
         except requests.exceptions.RequestException as e:
             print(e)
@@ -96,7 +102,16 @@ for i in range(len(appNameAndID["applist"]["apps"])):
         reviewsResponse = response.json()
         print(str(j) + " reviews done")
     temp = data
-    newData = pd.DataFrame({appNameAndID["applist"]["apps"][i]["name"] : reviewList["titles"][appNameAndID["applist"]["apps"][i]["name"]]["reviews"]})
+    temp2 = dates
+    #Get new data/dates
+    newData = pd.DataFrame({app["name"] : reviewList["titles"][app["name"]]["reviews"]})
+    newDates = pd.DataFrame({app["name"] : reviewList["titles"][app["name"]]["dates"]})
+    #Add them to current data/dates dataframes
     data = pd.concat([temp, newData], axis=1)
+    dates = pd.concat([temp2, newDates], axis=1)
+    #Write them to the file
     data.to_csv('data.csv', encoding='utf-8')
+    dates.to_csv('dates.csv', encoding='utf-8')
+    #Reset index
     data.reset_index()
+    dates.reset_index()
